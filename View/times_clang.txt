@@ -1,0 +1,35 @@
+
+n = 64
+
+CPU Blocked 4: 0.453 ms (+) 0.614 ms (+) 0.325 ms (+)
+CPU Blocked 8: 0.453 ms (+) 0.316 ms (+) 0.209 ms (+)
+CPU Blocked 16: 0.453 ms (+) 0.273 ms (+) 0.098 ms (+)
+CPU Blocked 32: 0.453 ms (+) 0.247 ms (+) 0.262 ms (+)
+
+n = 128
+
+CPU Blocked 4: 4.114 ms (+) 2.768 ms (+) 1.88 ms (+)
+CPU Blocked 8: 4.114 ms (+) 3.834 ms (+) 2.19 ms (+)
+CPU Blocked 16: 4.114 ms (+) 2.914 ms (+) 1.073 ms (+)
+CPU Blocked 32: 4.114 ms (+) 4.082 ms (+) 4.142 ms (+)
+
+n = 256
+
+CPU Blocked 4: 34.803 ms (+) 32.12 ms (+) 17.588 ms (+)
+CPU Blocked 8: 34.803 ms (+) 26.03 ms (+) 20.713 ms (+)
+CPU Blocked 16: 34.803 ms (+) 25.305 ms (+) 8.666 ms (+)
+CPU Blocked 32: 34.803 ms (+) 27.282 ms (+) 23.443 ms (+)
+
+n = 512
+
+CPU Blocked 4: 677.87 ms (+) 392.583 ms (+) 236.782 ms (+)
+CPU Blocked 8: 677.87 ms (+) 213.003 ms (+) 175.91 ms (+)
+CPU Blocked 16: 677.87 ms (+) 236.473 ms (+) 90.179 ms (+)
+CPU Blocked 32: 677.87 ms (+) 232.141 ms (+) 206.528 ms (+)
+
+n = 1024
+
+CPU Blocked 4: 11739.6 ms (+) 3895.5 ms (+) 3210.55 ms (+)
+CPU Blocked 8: 11739.6 ms (+) 2074.55 ms (+) 1704 ms (+)
+CPU Blocked 16: 11739.6 ms (+) 1997.81 ms (+) 891.324 ms (+)
+CPU Blocked 32: 11739.6 ms (+) 1929.82 ms (+) 1907.72 ms (+)
