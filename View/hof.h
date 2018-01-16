@@ -22,7 +22,7 @@ namespace hof {
     template<typename R, typename F, typename P, typename A, typename D, typename... V>
     void zip(R result, F f, View<P, A, D> v1, V... v) {
         for (size_t i = 0; i < D::head::dim; ++i) {
-            f(result[i], v1[i], v...[i]);
+            f(result[i], v1[i], v[i]...);
         }
     }
 

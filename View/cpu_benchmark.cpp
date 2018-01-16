@@ -152,32 +152,30 @@ auto functional_view_blocked(std::vector<T> const& A, std::vector<T> const& B)
 {
     std::vector<T> C(n*n);
     constexpr auto Bs = n / b;
-    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(A.data()), vB(B.data());
+    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(A.data());
+    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(B.data());
     View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(C.data());
+    std::vector<T> D(b*b);
+    View<T*, T, to_list_t<P<b, b>, P<b, 1>>> vD(D.data());
+    T t;
+    View<T*, T, EmptyList> tmp(&t);
     auto t0 = std::chrono::high_resolution_clock::now();
-    for (int bi = 0; bi < Bs; ++bi)
-    { //block index 1
-        for (int bj = 0; bj < Bs; ++bj)
-        { //block index 2
-            for (int bk = 0; bk < Bs; ++bk)
-            { //block index 3
-                auto bA = vA[bi][bk], bB = vB[bk][bj];
-                auto bC = vC[bi][bj];
-                for (int i = 0; i < b; ++i)
-                {
-                    for (int j = 0; j < b; ++j)
-                    {
-                        T sum = T();
-                        for (int k = 0; k < b; ++k)
-                        {
-                            sum += bA[i][k] * bB[k][j];
-                        }
-                        bC[i][j] = bC[i][j] + sum;
-                    }
-                }
-            }
-        }
-    }
+    map(vC, [&](auto result, auto br) {
+        map(result, [&](auto result, auto bc) {
+            rnz(result, vD,
+                [&](auto result, auto b1, auto b2) {
+                zip(result, [&](auto result, auto r1, auto r2) {
+                    zip(result, add, r1, r2); },
+                    b1, b2); },
+                [&](auto result, auto bA, auto bB) {
+                        map(result, [&](auto result, auto r) {
+                            map(result, [&](auto result, auto c) {
+                                rnz(result, tmp, add, mul, r, c); },
+                                bB); },
+                            bA); },
+                        br, bc); },
+            vB); },
+        vA);
     auto t1 = std::chrono::high_resolution_clock::now();
     return std::make_pair(C, ms(t0, t1));;
 }
@@ -223,10 +221,10 @@ void invoke() {
         std::cout << "\n";
     };
 
-    summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B) });
-    summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B) });
-    summary("CPU Blocked 16", { ref, func_ref, blocked<16>(A, B), view_blocked<n, 16>(A, B) });
-    summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B) });
+    summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B), functional_view_blocked<n, 4>(A, B) });
+    summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B), functional_view_blocked<n, 4>(A, B) });
+    summary("CPU Blocked 16", { ref, func_ref, blocked<16>(A, B), view_blocked<n, 16>(A, B), functional_view_blocked<n, 4>(A, B) });
+    summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 4>(A, B) });
 }
 
 void test() {
@@ -248,6 +246,7 @@ void test() {
 
 int main()
 {
+    std::cout << "               naive       func naive   blocked   view blocked   func view blocked\n";
     invoke<64>();
     invoke<128>();
     invoke<256>();
