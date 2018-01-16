@@ -19,7 +19,7 @@ class View<Ptr, T, List<D, Ds>> {
 public:
     View(const Ptr& data, size_t base = 0) : data(data), base(base) {}
 
-    View<Ptr, T, List<D, Ds>>& operator=(const View<Ptr, T, List<D, Ds>>& other) {
+    View<Ptr, T, List<D, Ds>>& operator=(const View<Ptr, T, List<D, Ds>>& other) const {
         for (size_t i = 0; i < D::dim; ++i) {
             (*this)[i] = other[i];
         }
@@ -69,12 +69,12 @@ class View<Ptr, T, EmptyList> {
 public:
     View(Ptr data, size_t base = 0) : data(data), base(base) {}
 
-    View<Ptr, T, EmptyList>& operator=(const View<Ptr, T, EmptyList>& other) {
+    View<Ptr, T, EmptyList>& operator=(const View<Ptr, T, EmptyList>& other) const {
         data[base] = other.data[other.base];
         return *this;
     }
 
-    void operator=(T x) {
+    void operator=(T x) const {
         data[base] = x;
     }
 

@@ -1,4 +1,5 @@
 #include "View.h"
+#include "hof.h"
 #include <random>
 
 // Standard C++ includes
@@ -32,7 +33,7 @@ bool is_same(std::vector<T> const& u, std::vector<T> const& v)
 }
 
 template<typename T>
-auto cpu_naive(std::vector<T> const& A, std::vector<T> const& B)
+auto naive(std::vector<T> const& A, std::vector<T> const& B)
 {
     auto n = (int)sqrt(A.size());
     std::vector<T> C(n*n);
@@ -54,7 +55,7 @@ auto cpu_naive(std::vector<T> const& A, std::vector<T> const& B)
 }
 
 template<int b, typename T>
-auto cpu_blocked(std::vector<T> const& A, std::vector<T> const& B)
+auto blocked(std::vector<T> const& A, std::vector<T> const& B)
 {
     auto n = (int)sqrt(A.size());
     std::vector<T> C(n*n);
@@ -89,7 +90,7 @@ auto cpu_blocked(std::vector<T> const& A, std::vector<T> const& B)
 }
 
 template<int n, int b, typename T>
-auto cpu_view_blocked(std::vector<T> const& A, std::vector<T> const& B)
+auto view_blocked(std::vector<T> const& A, std::vector<T> const& B)
 {
     std::vector<T> C(n*n);
     constexpr auto Bs = n / b;
@@ -112,7 +113,64 @@ auto cpu_view_blocked(std::vector<T> const& A, std::vector<T> const& B)
                         for (int k = 0; k < b; ++k)
                         {
                             sum += bA[i][k] * bB[k][j];
-                            //bA[i][k] = 0; // Miért csak akkor nem fordul, ha ezt berakom? Szerintem így se kéne.
+                        }
+                        bC[i][j] = bC[i][j] + sum;
+                    }
+                }
+            }
+        }
+    }
+    auto t1 = std::chrono::high_resolution_clock::now();
+    return std::make_pair(C, ms(t0, t1));;
+}
+
+using namespace hof;
+
+template<int n, typename T>
+auto functional_naive(std::vector<T> const& A, std::vector<T> const& B)
+{
+    std::vector<T> C(n*n);
+    View<T const*, T, to_list_t<P<n, n>, P<n, 1>>> vA(A.data());
+    View<T const*, T, to_list_t<P<n, 1>, P<n, n>>> vB(B.data());
+    View<T*, T, to_list_t<P<n, n>, P<n, 1>>> vC(C.data());
+    T t;
+    View<T*, T, EmptyList> tmp(&t);
+    auto t0 = std::chrono::high_resolution_clock::now();
+    map(vC,
+        [&](auto result, auto r) {
+        map(result,
+            [&](auto result, auto c) {
+            rnz(result, tmp, add, mul, r, c); },
+            vB); },
+        vA);
+    auto t1 = std::chrono::high_resolution_clock::now();
+    return std::make_pair(C, ms(t0, t1));;
+}
+
+template<int n, int b, typename T>
+auto functional_view_blocked(std::vector<T> const& A, std::vector<T> const& B)
+{
+    std::vector<T> C(n*n);
+    constexpr auto Bs = n / b;
+    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(A.data()), vB(B.data());
+    View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(C.data());
+    auto t0 = std::chrono::high_resolution_clock::now();
+    for (int bi = 0; bi < Bs; ++bi)
+    { //block index 1
+        for (int bj = 0; bj < Bs; ++bj)
+        { //block index 2
+            for (int bk = 0; bk < Bs; ++bk)
+            { //block index 3
+                auto bA = vA[bi][bk], bB = vB[bk][bj];
+                auto bC = vC[bi][bj];
+                for (int i = 0; i < b; ++i)
+                {
+                    for (int j = 0; j < b; ++j)
+                    {
+                        T sum = T();
+                        for (int k = 0; k < b; ++k)
+                        {
+                            sum += bA[i][k] * bB[k][j];
                         }
                         bC[i][j] = bC[i][j] + sum;
                     }
@@ -156,34 +214,22 @@ void invoke() {
         }
     }
 
-    std::ofstream file("matmul.txt");
-
-    auto ref = cpu_naive(A, B);
+    auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
 
     auto summary = [&](std::string const& title, std::vector<R> const& v)
     {
         std::cout << title << ": ";
         for (auto const& r : v) { std::cout << r.second << " ms (" << (is_same(r.first, ref.first) ? '+' : '-') << ") "; }
         std::cout << "\n";
-
-        file << "   " << v[2].second;
     };
 
-    file << n << "   " << ref.second;
-    summary("CPU Blocked 4", { ref, cpu_blocked<4>(A, B), cpu_view_blocked<n, 4>(A, B) });
-    summary("CPU Blocked 8", { ref, cpu_blocked<8>(A, B), cpu_view_blocked<n, 8>(A, B) });
-    summary("CPU Blocked 16", { ref, cpu_blocked<16>(A, B), cpu_view_blocked<n, 16>(A, B) });
-    summary("CPU Blocked 32", { ref, cpu_blocked<32>(A, B), cpu_view_blocked<n, 32>(A, B) });
-    file << "\n";
+    summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B) });
+    summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B) });
+    summary("CPU Blocked 16", { ref, func_ref, blocked<16>(A, B), view_blocked<n, 16>(A, B) });
+    summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B) });
 }
 
-int main()
-{
-    //invoke<64>();
-    //invoke<128>();
-    //invoke<256>();
-    //invoke<512>();
-    //invoke<1024>();
+void test() {
     std::vector<int> d(36);
     iota(d.begin(), d.end(), 0);
     View<int*, int, to_list_t<P<2, 18>, P<2, 3>, P<3, 6>, P<3, 1>>> v(d.data());
@@ -198,5 +244,13 @@ int main()
     auto v2 = v(_1, 0, _2, 2);
     std::cout << v2 << std::endl;
     std::cout << v2(_2, _1) << std::endl;
-    return 0;
+}
+
+int main()
+{
+    invoke<64>();
+    invoke<128>();
+    invoke<256>();
+    invoke<512>();
+    invoke<1024>();
 }
