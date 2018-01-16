@@ -86,6 +86,19 @@ private:
     size_t base;
 };
 
+template<typename T>
+class View<void, T, EmptyList> {
+public:
+    T operator=(T x) {
+        return data = x;
+    }
+
+    operator T() const {
+        return data;
+    }
+private:
+    T data;
+};
 template<typename Ptr, typename T>
 std::ostream& operator<<(std::ostream& out, const View<Ptr, T, EmptyList>& v) {
     return out << (T)v;
