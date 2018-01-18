@@ -27,7 +27,7 @@ namespace hof {
     }
 
     template<typename R, typename T, typename F, typename G, typename P, typename A, typename D, typename... V>
-    void rnz(R result, T tmp, F f, G g, View<P, A, D> v1, V... v) {
+    __forceinline void rnz(R result, T tmp, F f, G g, View<P, A, D> v1, V... v) {
         g(result, v1[0], v[0]...);
         for (size_t i = 1; i < D::head::dim; ++i) {
             g(tmp, v1[i], v[i]...);

@@ -128,6 +128,41 @@ auto view_blocked(std::vector<T> const& A, std::vector<T> const& B)
 
 using namespace hof;
 
+template<int n, int b, typename T>
+auto hybrid(std::vector<T> const& A, std::vector<T> const& B)
+{
+    std::vector<T> C(n*n);
+    constexpr auto Bs = n / b;
+    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(A.data());
+    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(B.data());
+    View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(C.data());
+    T tmp, sum;
+    View<T*, T, EmptyList> t(&tmp), s(&sum);
+    std::vector<T> D(b*b);
+    View<T*, T, to_list_t<P<b, b>, P<b, 1>>> vD(D.data());
+    auto t0 = std::chrono::high_resolution_clock::now();
+    for (int bi = 0; bi < Bs; ++bi)
+    { //block index 1
+        for (int bj = 0; bj < Bs; ++bj)
+        { //block index 2
+            for (int bk = 0; bk < Bs; ++bk)
+            { //block index 3
+                auto bA = vA[bi][bk];
+                auto bB = vB[bj][bk];
+                auto bC = vC[bi][bj];
+                for (int i = 0; i < b; ++i) {
+                    for (int j = 0; j < b; ++j) {
+                        rnz(s, t, add, mul, bA[i], bB[j]);
+                        bC[i][j] = bC[i][j] + s;
+                    }
+                }
+            }
+        }
+    }
+    auto t1 = std::chrono::high_resolution_clock::now();
+    return std::make_pair(C, ms(t0, t1));;
+}
+
 template<int n, typename T>
 auto functional_naive(std::vector<T> const& A, std::vector<T> const& B)
 {
@@ -214,18 +249,18 @@ void invoke() {
         }
     }
 
-    //auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
+    auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
 
     auto summary = [&](std::string const& title, std::vector<R> const& v)
     {
         std::cout << title << ": ";
-        for (auto const& r : v) { std::cout << r.second << " ms (" /*<< (is_same(r.first, ref.first) ? '+' : '-') << */") "; }
+        for (auto const& r : v) { std::cout << r.second << " ms (" << (is_same(r.first, ref.first) ? '+' : '-') << ") "; }
         std::cout << "\n";
     };
 
     //summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B), functional_view_blocked<n, 4>(A, B) });
     //summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B), functional_view_blocked<n, 8>(A, B) });
-    summary("CPU Blocked 16", { /*ref, func_ref, blocked<16>(A, B),*/ view_blocked<n, 16>(A, B), functional_view_blocked<n, 16>(A, B) });
+    summary("CPU Blocked 16", { /*ref, func_ref, blocked<16>(A, B),*/ view_blocked<n, 16>(A, B), hybrid<n, 16>(A, B), functional_view_blocked<n, 16>(A, B) });
     //summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 32>(A, B) });
 }
 
@@ -248,7 +283,7 @@ void test() {
 
 int main()
 {
-    std::cout << "               naive       func naive   blocked   view blocked   func view blocked\n";
+    std::cout << "            view blocked   hybrid   functional\n";
     //invoke<64>();
     //invoke<128>();
     //invoke<256>();
