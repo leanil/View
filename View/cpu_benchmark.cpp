@@ -212,19 +212,19 @@ void invoke() {
         }
     }
 
-    auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
+    //auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
 
     auto summary = [&](std::string const& title, std::vector<R> const& v)
     {
         std::cout << title << ": ";
-        for (auto const& r : v) { std::cout << r.second << " ms (" << (is_same(r.first, ref.first) ? '+' : '-') << ") "; }
+        for (auto const& r : v) { std::cout << r.second << " ms (" /*<< (is_same(r.first, ref.first) ? '+' : '-') << */") "; }
         std::cout << "\n";
     };
 
-    summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B), functional_view_blocked<n, 4>(A, B) });
-    summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B), functional_view_blocked<n, 8>(A, B) });
-    summary("CPU Blocked 16", { ref, func_ref, blocked<16>(A, B), view_blocked<n, 16>(A, B), functional_view_blocked<n, 16>(A, B) });
-    summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 32>(A, B) });
+    //summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B), functional_view_blocked<n, 4>(A, B) });
+    //summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B), functional_view_blocked<n, 8>(A, B) });
+    summary("CPU Blocked 16", { /*ref, func_ref, blocked<16>(A, B),*/ view_blocked<n, 16>(A, B), functional_view_blocked<n, 16>(A, B) });
+    //summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 32>(A, B) });
 }
 
 void test() {
@@ -247,9 +247,9 @@ void test() {
 int main()
 {
     std::cout << "               naive       func naive   blocked   view blocked   func view blocked\n";
-    invoke<64>();
-    invoke<128>();
-    invoke<256>();
+    //invoke<64>();
+    //invoke<128>();
+    //invoke<256>();
     invoke<512>();
-    invoke<1024>();
+    //invoke<1024>();
 }
