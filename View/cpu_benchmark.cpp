@@ -94,7 +94,8 @@ auto view_blocked(std::vector<T> const& A, std::vector<T> const& B)
 {
     std::vector<T> C(n*n);
     constexpr auto Bs = n / b;
-    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(A.data()), vB(B.data());
+    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(A.data());
+    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(B.data());
     View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(C.data());
     auto t0 = std::chrono::high_resolution_clock::now();
     for (int bi = 0; bi < Bs; ++bi)
@@ -103,7 +104,8 @@ auto view_blocked(std::vector<T> const& A, std::vector<T> const& B)
         { //block index 2
             for (int bk = 0; bk < Bs; ++bk)
             { //block index 3
-                auto bA = vA[bi][bk], bB = vB[bk][bj];
+                auto bA = vA[bi][bk];
+                auto bB = vB[bj][bk];
                 auto bC = vC[bi][bj];
                 for (int i = 0; i < b; ++i)
                 {
@@ -112,7 +114,7 @@ auto view_blocked(std::vector<T> const& A, std::vector<T> const& B)
                         T sum = T();
                         for (int k = 0; k < b; ++k)
                         {
-                            sum += bA[i][k] * bB[k][j];
+                            sum += bA[i][k] * bB[j][k];
                         }
                         bC[i][j] = bC[i][j] + sum;
                     }
