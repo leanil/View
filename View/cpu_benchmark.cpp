@@ -7,7 +7,7 @@
 //#else
 //#define FORCE_INLINE __attribute__((always_inline))
 //#endif
-#define INLINE __attribute__((always_inline)) //__forceinline
+#define INLINE //__forceinline //__attribute__((always_inline))
 #include "View.h"
 #include "hof.h"
 #include <random>
@@ -151,8 +151,8 @@ auto hybrid(std::vector<T> const& A, std::vector<T> const& B)
     View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(Bdata);
     View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(Cdata);
     View<T*, T, to_list_t<P<b, b>, P<b, 1>>> vD(Ddata);
-    T* tmp = new T, *sum = new T;
-    View<T*, T, EmptyList> t(tmp), s(sum);
+    T* t = new T, *sum = new T;
+    View<T*, T, EmptyList> tmp(t), s(sum);
     auto t0 = std::chrono::high_resolution_clock::now();
     for (int bi = 0; bi < Bs; ++bi)
     { //block index 1
@@ -165,7 +165,7 @@ auto hybrid(std::vector<T> const& A, std::vector<T> const& B)
                 auto bC = vC[bi][bj];
                 for (int i = 0; i < b; ++i) {
                     for (int j = 0; j < b; ++j) {
-                        rnz(s, t, add, mul, bA[i], bB[j]);
+                        rnz(s, tmp, add, mul, bA[i], bB[j]);
                         bC[i][j] = bC[i][j] + s;
                     }
                 }
