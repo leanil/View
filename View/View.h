@@ -17,7 +17,7 @@ template<typename Ptr, typename T, typename Ds> class View;
 template<typename Ptr, typename T, typename D, typename Ds>
 class View<Ptr, T, List<D, Ds>> {
 public:
-    View(const Ptr& data, size_t base = 0) : data(data), base(base) {}
+    View(Ptr VIEW_REF data, size_t base = 0) : data(data), base(base) {}
 
     View<Ptr, T, List<D, Ds>>& operator=(const View<Ptr, T, List<D, Ds>>& other) const {
         for (size_t i = 0; i < D::dim; ++i) {
@@ -51,7 +51,7 @@ private:
         return View<Ptr, T, typename Concat<typename Map<SortedDims, get_value>::type, Dims>::type>(data, base + offset);
     }
 
-    Ptr data;
+    Ptr VIEW_REF data;
     size_t base;
 };
 
@@ -67,7 +67,7 @@ std::ostream& operator<<(std::ostream& out, const View<Ptr, T, Dims>& v) {
 template<typename Ptr, typename T>
 class View<Ptr, T, EmptyList> {
 public:
-    View(Ptr data, size_t base = 0) : data(data), base(base) {}
+    View(Ptr VIEW_REF data, size_t base = 0) : data(data), base(base) {}
 
     View<Ptr, T, EmptyList>& operator=(const View<Ptr, T, EmptyList>& other) const {
         data[base] = other.data[other.base];
@@ -82,13 +82,14 @@ public:
         return data[base];
     }
 private:
-    Ptr data;
+    Ptr VIEW_REF data;
     size_t base;
 };
 
 template<typename T>
 class View<void, T, EmptyList> {
 public:
+    View(): data(T()) {}
     T operator=(T x) {
         return data = x;
     }
@@ -99,6 +100,7 @@ public:
 private:
     T data;
 };
+
 template<typename Ptr, typename T>
 std::ostream& operator<<(std::ostream& out, const View<Ptr, T, EmptyList>& v) {
     return out << (T)v;

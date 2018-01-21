@@ -1,3 +1,13 @@
+﻿#define VIEW_REF            //inkább ront
+#define LAMBDA_REF const&   //javít
+#define HOF_REF             //alapból talán javít, de az inline-t elrontja
+//#ifdef _MSC_VER           //ez sajnos nem működik
+//#define FORCE_INLINE __forceinline
+//#include "asd"
+//#else
+//#define FORCE_INLINE __attribute__((always_inline))
+//#endif
+#define INLINE __attribute__((always_inline)) //__forceinline
 #include "View.h"
 #include "hof.h"
 #include <random>
@@ -94,9 +104,11 @@ auto view_blocked(std::vector<T> const& A, std::vector<T> const& B)
 {
     std::vector<T> C(n*n);
     constexpr auto Bs = n / b;
-    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(A.data());
-    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(B.data());
-    View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(C.data());
+    auto Adata = A.data(), Bdata = B.data();
+    auto Cdata = C.data();
+    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(Adata);
+    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(Bdata);
+    View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(Cdata);
     auto t0 = std::chrono::high_resolution_clock::now();
     for (int bi = 0; bi < Bs; ++bi)
     { //block index 1
@@ -131,15 +143,16 @@ using namespace hof;
 template<int n, int b, typename T>
 auto hybrid(std::vector<T> const& A, std::vector<T> const& B)
 {
-    std::vector<T> C(n*n);
+    std::vector<T> C(n*n), D(b*b);
     constexpr auto Bs = n / b;
-    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(A.data());
-    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(B.data());
-    View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(C.data());
-    T tmp, sum;
-    View<T*, T, EmptyList> t(&tmp), s(&sum);
-    std::vector<T> D(b*b);
-    View<T*, T, to_list_t<P<b, b>, P<b, 1>>> vD(D.data());
+    auto Adata = A.data(), Bdata = B.data();
+    auto Cdata = C.data(), Ddata = D.data();
+    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(Adata);
+    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(Bdata);
+    View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(Cdata);
+    View<T*, T, to_list_t<P<b, b>, P<b, 1>>> vD(Ddata);
+    T* tmp = new T, *sum = new T;
+    View<T*, T, EmptyList> t(tmp), s(sum);
     auto t0 = std::chrono::high_resolution_clock::now();
     for (int bi = 0; bi < Bs; ++bi)
     { //block index 1
@@ -167,16 +180,18 @@ template<int n, typename T>
 auto functional_naive(std::vector<T> const& A, std::vector<T> const& B)
 {
     std::vector<T> C(n*n);
-    View<T const*, T, to_list_t<P<n, n>, P<n, 1>>> vA(A.data());
-    View<T const*, T, to_list_t<P<n, 1>, P<n, n>>> vB(B.data());
-    View<T*, T, to_list_t<P<n, n>, P<n, 1>>> vC(C.data());
-    T t;
-    View<T*, T, EmptyList> tmp(&t);
+    auto Adata = A.data(), Bdata = B.data();
+    auto Cdata = C.data();
+    View<T const*, T, to_list_t<P<n, n>, P<n, 1>>> vA(Adata);
+    View<T const*, T, to_list_t<P<n, 1>, P<n, n>>> vB(Bdata);
+    View<T*, T, to_list_t<P<n, n>, P<n, 1>>> vC(Cdata);
+    T* t = new T;
+    View<T*, T, EmptyList> tmp(t);
     auto t0 = std::chrono::high_resolution_clock::now();
     map(vC,
-        [&](auto result, auto r) {
+        [&](auto LAMBDA_REF result, auto LAMBDA_REF r) {
         map(result,
-            [&](auto result, auto c) {
+            [&](auto LAMBDA_REF result, auto LAMBDA_REF c) {
             rnz(result, tmp, add, mul, r, c); },
             vB); },
         vA);
@@ -187,26 +202,28 @@ auto functional_naive(std::vector<T> const& A, std::vector<T> const& B)
 template<int n, int b, typename T>
 auto functional_view_blocked(std::vector<T> const& A, std::vector<T> const& B)
 {
-    std::vector<T> C(n*n);
     constexpr auto Bs = n / b;
-    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(A.data());
-    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(B.data());
-    View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(C.data());
-    std::vector<T> D(b*b);
-    View<T*, T, to_list_t<P<b, b>, P<b, 1>>> vD(D.data());
-    T t;
-    View<T*, T, EmptyList> tmp(&t);
+    std::vector<T> C(n*n), D(b*b);
+    auto Adata = A.data(), Bdata = B.data();
+    auto Cdata = C.data(), Ddata = D.data();
+    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(Adata);
+    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(Bdata);
+    View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(Cdata);
+    View<T*, T, to_list_t<P<b, b>, P<b, 1>>> vD(Ddata);
+    T q;
+    T* t = &q;
+    View<T*, T, EmptyList> tmp(t);
     auto t0 = std::chrono::high_resolution_clock::now();
-    map(vC, [&](auto result, auto br) {
-        map(result, [&](auto result, auto bc) {
+    map(vC, [&](auto LAMBDA_REF result, auto LAMBDA_REF br) {
+        map(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF bc) {
             rnz(result, vD,
-                [&](auto result, auto b1, auto b2) {
-                zip(result, [&](auto result, auto r1, auto r2) {
+                [&](auto LAMBDA_REF result, auto LAMBDA_REF b1, auto LAMBDA_REF b2) {
+                zip(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF r1, auto LAMBDA_REF r2) {
                     zip(result, add, r1, r2); },
                     b1, b2); },
-                [&](auto result, auto bA, auto bB) {
-                        map(result, [&](auto result, auto r) {
-                            map(result, [&](auto result, auto c) {
+                [&](auto LAMBDA_REF result, auto LAMBDA_REF bA, auto LAMBDA_REF bB) {
+                        map(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF r) {
+                            map(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF c) {
                                 rnz(result, tmp, add, mul, r, c); },
                                 bB); },
                             bA); },
@@ -249,12 +266,12 @@ void invoke() {
         }
     }
 
-    auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
+    //auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
 
     auto summary = [&](std::string const& title, std::vector<R> const& v)
     {
         std::cout << title << ": ";
-        for (auto const& r : v) { std::cout << r.second << " ms (" << (is_same(r.first, ref.first) ? '+' : '-') << ") "; }
+        for (auto const& r : v) { std::cout << r.second << " ms " /*"(" << (is_same(r.first, ref.first) ? '+' : '-') << ") "*/; }
         std::cout << "\n";
     };
 

@@ -148,11 +148,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cpu_benchmark.cpp" />
-    <ClCompile Include="View.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hof.h" />
     <ClInclude Include="List.h" />
+    <ClInclude Include="View.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
