@@ -1,14 +1,9 @@
-﻿#define VIEW_REF            //inkább ront
-#define LAMBDA_REF const&   //javít
-#define HOF_REF             //alapból talán javít, de az inline-t elrontja
-//#ifdef _MSC_VER           //ez sajnos nem működik
-//#define FORCE_INLINE __forceinline
-//#include "asd"
-//#else
-//#define FORCE_INLINE __attribute__((always_inline))
-//#endif
-#define INLINE //__forceinline //__attribute__((always_inline))
-#include "View.h"
+﻿#define VIEW_REF   const&   // nincs látványos különbség
+#define LAMBDA_REF const&  // kicsit gyorsít mind2 fordítóval
+#define HOF_REF  const&    // VS-ben gyorsít valamennyit      
+#define INLINE __forceinline //__attribute__((always_inline)) // Clang-gal semmi, VS-sel ugyan az történik, mint a ptr_only view hatására, de a 2 együtt is csak 2xes gyorsulás
+//#define HOF_SPEC  //clang-gal elrontja a hybrid-et (80ms -> 180ms), VS-sel is kicsit lassítja
+#include "View_ptr_only.h" // Clang: a hybdid ugyan olyan lassú lesz a ptr_onlyval, mint a full func. VS: eleve ugyan olyan lassú, viszont ptr_onlyval mind2 2xesre gyorsul.
 #include "hof.h"
 #include <random>
 
@@ -246,6 +241,16 @@ double uniform_rnd(long& state)
     return ((double)state / M);
 }
 
+template<typename F, typename... Args>
+double measure(const F& f, Args&&... args) {
+    double min_time = 9999;
+    for (int i = 0; i < 5; ++i) {
+        auto result = f(std::forward<Args>(args)...);
+        min_time = std::min(min_time, result.second);
+    }
+    return min_time;
+}
+
 template<int n>
 void invoke() {
     using T = double;
@@ -266,44 +271,50 @@ void invoke() {
         }
     }
 
-    //auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
+    auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
 
     auto summary = [&](std::string const& title, std::vector<R> const& v)
     {
         std::cout << title << ": ";
-        for (auto const& r : v) { std::cout << r.second << " ms " /*"(" << (is_same(r.first, ref.first) ? '+' : '-') << ") "*/; }
+        for (auto const& r : v) { std::cout << r.second << " ms " "(" << (is_same(r.first, ref.first) ? '+' : '-') << ") "; }
         std::cout << "\n";
     };
 
-    //summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B), functional_view_blocked<n, 4>(A, B) });
-    //summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B), functional_view_blocked<n, 8>(A, B) });
-    summary("CPU Blocked 16", { /*ref, func_ref, blocked<16>(A, B),*/ view_blocked<n, 16>(A, B), hybrid<n, 16>(A, B), functional_view_blocked<n, 16>(A, B) });
-    //summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 32>(A, B) });
+    summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B), functional_view_blocked<n, 4>(A, B) });
+    summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B), functional_view_blocked<n, 8>(A, B) });
+    summary("CPU Blocked 16", { ref, func_ref, blocked<16>(A, B), view_blocked<n, 16>(A, B), functional_view_blocked<n, 16>(A, B) });
+    summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 32>(A, B) });
 }
 
 void test() {
-    std::vector<int> d(36);
-    iota(d.begin(), d.end(), 0);
-    View<int*, int, to_list_t<P<2, 18>, P<2, 3>, P<3, 6>, P<3, 1>>> v(d.data());
-    std::cout << v << std::endl;
-    std::cout << v[1] << std::endl;
-    auto vv = v(1, 1);
-    std::cout << vv << std::endl;
-    std::cout << v(1, 1, 2, 2) << std::endl;
-    std::cout << v[1](1, 2)[2] << std::endl;
-    using namespace std::placeholders;
-    std::cout << v(_2, _1, _4, _3) << std::endl;
-    auto v2 = v(_1, 0, _2, 2);
-    std::cout << v2 << std::endl;
-    std::cout << v2(_2, _1) << std::endl;
+    using T = double;
+    using R = std::pair<std::vector<T>, double>;
+    const int n = 512;
+    // Host vectors
+    std::vector<T> A(n*n);
+    std::vector<T> B(n*n);
+
+    // Initialize vectors on host
+    for (size_t i = 0; i < n; i++)
+    {
+        for (size_t j = 0; j < n; j++)
+        {
+            A[i*n + j] = (T)((i + j + 1) / (1.*n*n));//(T)uniform_rnd(state);//(i+j+1) / (1.*n*n);
+            B[i*n + j] = (T)((i - j + 2) / (1.*n*n));//(T)uniform_rnd(state);//(i-j+2) / (1.*n*n);
+        }
+    }
+
+    std::cout << "loop hybrid functional\n";
+    std::cout << measure(view_blocked<n, 16,T>, A, B) << " " << measure(hybrid<n, 16, T>, A, B) << " " << measure(functional_view_blocked<n, 16, T>, A, B) << std::endl;
 }
 
 int main()
 {
-    std::cout << "            view blocked   hybrid   functional\n";
-    //invoke<64>();
-    //invoke<128>();
-    //invoke<256>();
+    test();
+    std::cout << "               naive       func naive   blocked   view blocked   func view blocked\n";
+    invoke<64>();
+    invoke<128>();
+    invoke<256>();
     invoke<512>();
-    //invoke<1024>();
+    invoke<1024>();
 }
