@@ -17,6 +17,8 @@ template<typename Ptr, typename T, typename Ds> class View;
 template<typename Ptr, typename T, typename D, typename Ds>
 class View<Ptr, T, List<D, Ds>> {
 public:
+    static constexpr size_t size = D::dim;
+
     View(const Ptr& data, size_t base = 0) : data(data), base(base) {}
 
     View<Ptr, T, List<D, Ds>>& operator=(const View<Ptr, T, List<D, Ds>>& other) const {
