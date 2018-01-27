@@ -1,9 +1,9 @@
-﻿#define VIEW_REF   const&   // nincs látványos különbség
+﻿#define VIEW_REF      // nincs látványos különbség
 #define LAMBDA_REF const&  // kicsit gyorsít mind2 fordítóval
 #define HOF_REF  const&    // VS-ben gyorsít valamennyit      
-#define INLINE __forceinline //__attribute__((always_inline)) // Clang-gal semmi, VS-sel ugyan az történik, mint a ptr_only view hatására, de a 2 együtt is csak 2xes gyorsulás
-//#define HOF_SPEC  //clang-gal elrontja a hybrid-et (80ms -> 180ms), VS-sel is kicsit lassítja
-#include "View_ptr_only.h" // Clang: a hybdid ugyan olyan lassú lesz a ptr_onlyval, mint a full func. VS: eleve ugyan olyan lassú, viszont ptr_onlyval mind2 2xesre gyorsul.
+#define INLINE //__forceinline //__attribute__((always_inline)) // Clang-gal semmi, VS-sel ugyan az történik, mint a ptr_only view hatására, de a 2 együtt is csak 2xes gyorsulás
+#define HOF_SPEC  //clang-gal elrontja a hybrid-et (80ms -> 180ms), VS-sel is kicsit lassítja
+#include "View.h"//"View_ptr_only.h" // Clang: a hybdid ugyan olyan lassú lesz a ptr_onlyval, mint a full func. VS: eleve ugyan olyan lassú, viszont ptr_onlyval mind2 2xesre gyorsul.
 #include "hof.h"
 #include <random>
 
@@ -158,17 +158,20 @@ auto hybrid(std::vector<T> const& A, std::vector<T> const& B)
                 auto bA = vA[bi][bk];
                 auto bB = vB[bj][bk];
                 auto bC = vC[bi][bj];
-                for (int i = 0; i < b; ++i) {
-                    for (int j = 0; j < b; ++j) {
-                        rnz(s, tmp, add, mul, bA[i], bB[j]);
-                        bC[i][j] = bC[i][j] + s;
-                    }
-                }
+                map(vD, [&](auto LAMBDA_REF result, auto LAMBDA_REF r) {
+                    map(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF c) {
+                        rnz(result, tmp, add, mul, r, c); },
+                        bB); },
+                    bA);
+                zip(bC, [&](auto LAMBDA_REF result, auto LAMBDA_REF r1, auto LAMBDA_REF r2) {
+                    zip(result, add, r1, r2); },
+                    bC, vD);
             }
+   
         }
     }
-    auto t1 = std::chrono::high_resolution_clock::now();
-    return std::make_pair(C, ms(t0, t1));;
+auto t1 = std::chrono::high_resolution_clock::now();
+return std::make_pair(C, ms(t0, t1));;
 }
 
 template<int n, typename T>
@@ -303,9 +306,9 @@ void test() {
             B[i*n + j] = (T)((i - j + 2) / (1.*n*n));//(T)uniform_rnd(state);//(i-j+2) / (1.*n*n);
         }
     }
-
+    //std::cout << is_same(naive(A, B).first, hybrid<n, 16>(A, B).first) << std::endl;
     std::cout << "loop hybrid functional\n";
-    std::cout << measure(view_blocked<n, 16,T>, A, B) << " " << measure(hybrid<n, 16, T>, A, B) << " " << measure(functional_view_blocked<n, 16, T>, A, B) << std::endl;
+    std::cout << measure(view_blocked<n, 16, T>, A, B) << " " << measure(hybrid<n, 16, T>, A, B) << " " << measure(functional_view_blocked<n, 16, T>, A, B) << std::endl;
 }
 
 int main()
