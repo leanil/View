@@ -17,7 +17,7 @@ template<typename Ptr, typename T, typename Ds> class View;
 template<typename Ptr, typename T, typename D, typename Ds>
 class View<Ptr, T, List<D, Ds>> {
 public:
-    View(Ptr VIEW_REF data, size_t base = 0) : data(data), base(base) {}
+    View(Ptr data) : data(data) {}
 
     View<Ptr, T, List<D, Ds>>& operator=(const View<Ptr, T, List<D, Ds>>& other) const {
         for (size_t i = 0; i < D::dim; ++i) {
@@ -27,7 +27,7 @@ public:
     }
 
     auto operator[](size_t idx) const {
-        return View<Ptr, T, Ds>(data, base + idx*D::stride);
+        return View<Ptr, T, Ds>(data + idx*D::stride);
     }
 
     template<typename I, typename... Idx>
@@ -35,7 +35,8 @@ public:
         return slice<EmptyList, List<D, Ds>>(0, i, idx...);
     }
 
-//private:
+    Ptr data;
+private:
     template<typename SortedDims, typename Dims, typename I, typename... Idx, std::enable_if_t<std::is_placeholder_v<I> != 0, int> = 0>
     auto slice(size_t offset, I i, Idx... idx) const {
         return slice<typename Insert<SortedDims, KeyValuePair<Int<std::is_placeholder_v<I>>, typename Dims::head>>::type, typename Dims::tail>(offset, idx...);
@@ -48,11 +49,8 @@ public:
 
     template<typename SortedDims, typename Dims>
     auto slice(size_t offset) const {
-        return View<Ptr, T, typename Concat<typename Map<SortedDims, get_value>::type, Dims>::type>(data, base + offset);
+        return View<Ptr, T, typename Concat<typename Map<SortedDims, get_value>::type, Dims>::type>(data + offset);
     }
-
-    Ptr VIEW_REF data;
-    size_t base;
 };
 
 template<typename Ptr, typename T, typename Dims>
@@ -67,38 +65,22 @@ std::ostream& operator<<(std::ostream& out, const View<Ptr, T, Dims>& v) {
 template<typename Ptr, typename T>
 class View<Ptr, T, EmptyList> {
 public:
-    View(Ptr VIEW_REF data, size_t base = 0) : data(data), base(base) {}
+    View(Ptr data) : data(data) {}
 
-    View<Ptr, T, EmptyList>& operator=(const View<Ptr, T, EmptyList>& other) const {
-        data[base] = other.data[other.base];
+    auto& operator=(const View<Ptr, T, EmptyList>& other) const {
+        *data = *other.data;
         return *this;
     }
 
     void operator=(T x) const {
-        data[base] = x;
+        *data = x;
     }
 
     operator T() const {
-        return data[base];
-    }
-//private:
-    Ptr VIEW_REF data;
-    size_t base;
-};
-
-template<typename T>
-class View<void, T, EmptyList> {
-public:
-    View() : data(T()) {}
-    T operator=(T x) {
-        return data = x;
+        return *data;
     }
 
-    operator T() const {
-        return data;
-    }
-//private:
-    T data;
+    Ptr data;
 };
 
 template<typename Ptr, typename T>

@@ -26,9 +26,6 @@
     <ClInclude Include="hof.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="View_ptr_only.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="View.h">
       <Filter>Header Files</Filter>
     </ClInclude>

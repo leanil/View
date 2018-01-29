@@ -1,13 +1,6 @@
-﻿#define VIEW_REF      // nincs látványos különbség
-#define LAMBDA_REF const&  // kicsit gyorsít mind2 fordítóval
-#define HOF_REF  const&    // VS-ben gyorsít valamennyit      
-#define INLINE //__forceinline //__attribute__((always_inline)) // Clang-gal semmi, VS-sel ugyan az történik, mint a ptr_only view hatására, de a 2 együtt is csak 2xes gyorsulás
-#define HOF_SPEC  //clang-gal elrontja a hybrid-et (80ms -> 180ms), VS-sel is kicsit lassítja
-#include "View.h"//"View_ptr_only.h" // Clang: a hybdid ugyan olyan lassú lesz a ptr_onlyval, mint a full func. VS: eleve ugyan olyan lassú, viszont ptr_onlyval mind2 2xesre gyorsul.
+﻿#include "View.h"
 #include "hof.h"
 #include <random>
-
-// Standard C++ includes
 #include <algorithm>
 #include <iostream>
 #include <numeric>
@@ -135,45 +128,6 @@ auto view_blocked(std::vector<T> const& A, std::vector<T> const& B)
 
 using namespace hof;
 
-template<int n, int b, typename T>
-auto hybrid(std::vector<T> const& A, std::vector<T> const& B)
-{
-    std::vector<T> C(n*n), D(b*b);
-    constexpr auto Bs = n / b;
-    auto Adata = A.data(), Bdata = B.data();
-    auto Cdata = C.data(), Ddata = D.data();
-    View<T const*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vA(Adata);
-    View<T const*, T, to_list_t<P<Bs, b>, P<Bs, b*n>, P<b, 1>, P<b, n>>> vB(Bdata);
-    View<T*, T, to_list_t<P<Bs, b*n>, P<Bs, b>, P<b, n>, P<b, 1>>> vC(Cdata);
-    View<T*, T, to_list_t<P<b, b>, P<b, 1>>> vD(Ddata);
-    T* t = new T, *sum = new T;
-    View<T*, T, EmptyList> tmp(t), s(sum);
-    auto t0 = std::chrono::high_resolution_clock::now();
-    for (int bi = 0; bi < Bs; ++bi)
-    { //block index 1
-        for (int bj = 0; bj < Bs; ++bj)
-        { //block index 2
-            for (int bk = 0; bk < Bs; ++bk)
-            { //block index 3
-                auto bA = vA[bi][bk];
-                auto bB = vB[bj][bk];
-                auto bC = vC[bi][bj];
-                map(vD, [&](auto LAMBDA_REF result, auto LAMBDA_REF r) {
-                    map(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF c) {
-                        rnz(result, tmp, add, mul, r, c); },
-                        bB); },
-                    bA);
-                zip(bC, [&](auto LAMBDA_REF result, auto LAMBDA_REF r1, auto LAMBDA_REF r2) {
-                    zip(result, add, r1, r2); },
-                    bC, vD);
-            }
-   
-        }
-    }
-auto t1 = std::chrono::high_resolution_clock::now();
-return std::make_pair(C, ms(t0, t1));;
-}
-
 template<int n, typename T>
 auto functional_naive(std::vector<T> const& A, std::vector<T> const& B)
 {
@@ -187,9 +141,9 @@ auto functional_naive(std::vector<T> const& A, std::vector<T> const& B)
     View<T*, T, EmptyList> tmp(t);
     auto t0 = std::chrono::high_resolution_clock::now();
     map(vC,
-        [&](auto LAMBDA_REF result, auto LAMBDA_REF r) {
+        [&](auto result, auto r) {
         map(result,
-            [&](auto LAMBDA_REF result, auto LAMBDA_REF c) {
+            [&](auto result, auto c) {
             rnz(result, tmp, add, mul, r, c); },
             vB); },
         vA);
@@ -212,16 +166,16 @@ auto functional_view_blocked(std::vector<T> const& A, std::vector<T> const& B)
     T* t = &q;
     View<T*, T, EmptyList> tmp(t);
     auto t0 = std::chrono::high_resolution_clock::now();
-    map(vC, [&](auto LAMBDA_REF result, auto LAMBDA_REF br) {
-        map(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF bc) {
+    map(vC, [&](auto result, auto br) {
+        map(result, [&](auto result, auto bc) {
             rnz(result, vD,
-                [&](auto LAMBDA_REF result, auto LAMBDA_REF b1, auto LAMBDA_REF b2) {
-                zip(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF r1, auto LAMBDA_REF r2) {
+                [&](auto result, auto b1, auto b2) {
+                zip(result, [&](auto result, auto r1, auto r2) {
                     zip(result, add, r1, r2); },
                     b1, b2); },
-                [&](auto LAMBDA_REF result, auto LAMBDA_REF bA, auto LAMBDA_REF bB) {
-                        map(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF r) {
-                            map(result, [&](auto LAMBDA_REF result, auto LAMBDA_REF c) {
+                [&](auto result, auto bA, auto bB) {
+                        map(result, [&](auto result, auto r) {
+                            map(result, [&](auto result, auto c) {
                                 rnz(result, tmp, add, mul, r, c); },
                                 bB); },
                             bA); },
@@ -242,16 +196,6 @@ double uniform_rnd(long& state)
     if (t > 0) { state = t; }
     else { state = t + M; }
     return ((double)state / M);
-}
-
-template<typename F, typename... Args>
-double measure(const F& f, Args&&... args) {
-    double min_time = 9999;
-    for (int i = 0; i < 5; ++i) {
-        auto result = f(std::forward<Args>(args)...);
-        min_time = std::min(min_time, result.second);
-    }
-    return min_time;
 }
 
 template<int n>
@@ -289,31 +233,8 @@ void invoke() {
     summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 32>(A, B) });
 }
 
-void test() {
-    using T = double;
-    using R = std::pair<std::vector<T>, double>;
-    const int n = 512;
-    // Host vectors
-    std::vector<T> A(n*n);
-    std::vector<T> B(n*n);
-
-    // Initialize vectors on host
-    for (size_t i = 0; i < n; i++)
-    {
-        for (size_t j = 0; j < n; j++)
-        {
-            A[i*n + j] = (T)((i + j + 1) / (1.*n*n));//(T)uniform_rnd(state);//(i+j+1) / (1.*n*n);
-            B[i*n + j] = (T)((i - j + 2) / (1.*n*n));//(T)uniform_rnd(state);//(i-j+2) / (1.*n*n);
-        }
-    }
-    //std::cout << is_same(naive(A, B).first, hybrid<n, 16>(A, B).first) << std::endl;
-    std::cout << "loop hybrid functional\n";
-    std::cout << measure(view_blocked<n, 16, T>, A, B) << " " << measure(hybrid<n, 16, T>, A, B) << " " << measure(functional_view_blocked<n, 16, T>, A, B) << std::endl;
-}
-
 int main()
 {
-    test();
     std::cout << "               naive       func naive   blocked   view blocked   func view blocked\n";
     invoke<64>();
     invoke<128>();
