@@ -15,19 +15,25 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="cpu_benchmark.cpp">
+    <SYCLCpp Include="main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
+    </SYCLCpp>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="List.h">
+    <ClInclude Include="hof.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hof.h">
+    <ClInclude Include="List.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="View.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpu_benchmark.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gpu_benchmark.hpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

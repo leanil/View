@@ -31,27 +31,27 @@ public:
         return View<Ptr, T, Ds>(data + idx*D::stride);
     }
 
-    template<typename I, typename... Idx>
-    auto operator()(I i, Idx... idx) const {
-        return slice<EmptyList, List<D, Ds>>(0, i, idx...);
-    }
+    //template<typename I, typename... Idx>
+    //auto operator()(I i, Idx... idx) const {
+    //    return slice<EmptyList, List<D, Ds>>(0, i, idx...);
+    //}
 
     Ptr data;
 private:
-    template<typename SortedDims, typename Dims, typename I, typename... Idx, std::enable_if_t<std::is_placeholder_v<I> != 0, int> = 0>
-    auto slice(size_t offset, I i, Idx... idx) const {
-        return slice<typename Insert<SortedDims, KeyValuePair<Int<std::is_placeholder_v<I>>, typename Dims::head>>::type, typename Dims::tail>(offset, idx...);
-    }
+    //template<typename SortedDims, typename Dims, typename I, typename... Idx, std::enable_if_t<std::is_placeholder_v<I> != 0, int> = 0>
+    //auto slice(size_t offset, I i, Idx... idx) const {
+    //    return slice<typename Insert<SortedDims, KeyValuePair<Int<std::is_placeholder_v<I>>, typename Dims::head>>::type, typename Dims::tail>(offset, idx...);
+    //}
 
-    template<typename SortedDims, typename Dims, typename I, typename... Idx, std::enable_if_t<std::is_placeholder_v<I> == 0, int> = 0>
-    auto slice(size_t offset, I i, Idx... idx) const {
-        return slice<SortedDims, typename Dims::tail>(offset + i * Dims::head::stride, idx...);
-    }
+    //template<typename SortedDims, typename Dims, typename I, typename... Idx, std::enable_if_t<std::is_placeholder_v<I> == 0, int> = 0>
+    //auto slice(size_t offset, I i, Idx... idx) const {
+    //    return slice<SortedDims, typename Dims::tail>(offset + i * Dims::head::stride, idx...);
+    //}
 
-    template<typename SortedDims, typename Dims>
-    auto slice(size_t offset) const {
-        return View<Ptr, T, typename Concat<typename Map<SortedDims, get_value>::type, Dims>::type>(data + offset);
-    }
+    //template<typename SortedDims, typename Dims>
+    //auto slice(size_t offset) const {
+    //    return View<Ptr, T, typename Concat<typename Map<SortedDims, get_value>::type, Dims>::type>(data + offset);
+    //}
 };
 
 template<typename Ptr, typename T, typename Dims>

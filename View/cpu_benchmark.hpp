@@ -233,8 +233,7 @@ void invoke() {
     summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 32>(A, B) });
 }
 
-int main()
-{
+void cpu_benchmark() {
     std::cout << "               naive       func naive   blocked   view blocked   func view blocked\n";
     invoke<64>();
     invoke<128>();
