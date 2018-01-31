@@ -35,5 +35,8 @@
     <ClInclude Include="gpu_benchmark.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="benchmark_util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

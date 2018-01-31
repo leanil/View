@@ -1,5 +1,8 @@
-﻿#include "View.h"
+﻿#pragma once
+
+#include "View.h"
 #include "hof.h"
+#include "benchmark_util.h"
 #include <random>
 #include <algorithm>
 #include <iostream>
@@ -8,27 +11,6 @@
 #include <chrono>
 #include <fstream>
 #include <string>
-
-using Time = decltype(std::chrono::high_resolution_clock::now());
-auto ms(Time const& t0, Time const& t1) { return std::chrono::duration_cast<std::chrono::microseconds>(std::max(t1, t0) - std::min(t1, t0)).count() / 1000.0; }
-
-template<typename T>
-bool is_same(std::vector<T> const& u, std::vector<T> const& v)
-{
-    if (u.size() != v.size()) { return false; }
-    size_t i = 0;
-    auto err = (T)0;
-    for (; i < u.size(); ++i)
-    {
-        err = abs((u[i] - v[i]) / (u[i] + v[i]));
-        if (err > 5e-6)
-        {
-            std::cout << "mismatch " << i << "  " << err << "\n";
-            return false;
-        }
-    }
-    return true;
-}
 
 template<typename T>
 auto naive(std::vector<T> const& A, std::vector<T> const& B)
@@ -186,20 +168,8 @@ auto functional_view_blocked(std::vector<T> const& A, std::vector<T> const& B)
     return std::make_pair(C, ms(t0, t1));;
 }
 
-double uniform_rnd(long& state)
-{
-    const long A = 48271;      /* multiplier*/
-    const long M = 2147483647; /* modulus */
-    const long Q = M / A;      /* quotient */
-    const long R = M % A;      /* remainder */
-    long t = A * (state % Q) - R * (state / Q);
-    if (t > 0) { state = t; }
-    else { state = t + M; }
-    return ((double)state / M);
-}
-
 template<int n>
-void invoke() {
+void cpu_invoke() {
     using T = double;
     using R = std::pair<std::vector<T>, double>;
 
@@ -235,9 +205,9 @@ void invoke() {
 
 void cpu_benchmark() {
     std::cout << "               naive       func naive   blocked   view blocked   func view blocked\n";
-    invoke<64>();
-    invoke<128>();
-    invoke<256>();
-    invoke<512>();
-    invoke<1024>();
+    cpu_invoke<64>();
+    cpu_invoke<128>();
+    cpu_invoke<256>();
+    cpu_invoke<512>();
+    cpu_invoke<1024>();
 }

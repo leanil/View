@@ -17,6 +17,7 @@
     </SYCLCpp>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="benchmark_util.h" />
     <ClInclude Include="cpu_benchmark.hpp" />
     <ClInclude Include="gpu_benchmark.hpp" />
     <ClInclude Include="hof.h" />
