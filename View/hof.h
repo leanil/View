@@ -57,6 +57,6 @@ namespace hof {
         result = r;
     }
 
-    auto add = [](auto a, auto b) {return a + b; };
-    auto mul = [](auto a, auto b) {return a * b; };
+    const auto add = [](auto a, auto b) {return a + b; };
+    const auto mul = [](auto a, auto b) {return a * b; };
 }

@@ -2,5 +2,5 @@
 #include "gpu_benchmark.hpp"
 
 int main() {
-    gpu_benchmark();
+    gpu::benchmark();
 }
