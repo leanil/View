@@ -170,7 +170,7 @@ namespace gpu {
                     auto ix = id[0];
                     auto iy = id[1];
                     T tmp = 0;
-                    rnz(vC[ix][iy], tmp, add, mul, vA[ix], vB[iy]);
+                    rnz(vC[iy][ix], tmp, add, mul, vA[iy], vB[ix]);
                 });
             });
             queue.wait();
@@ -304,7 +304,7 @@ namespace gpu {
         invoke<128>();
         invoke<256>();
         invoke<512>();
-        //invoke<1024>();
+        invoke<1024>();
     }
 
 }

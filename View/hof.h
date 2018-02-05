@@ -2,7 +2,11 @@
 
 #include "View.h"
 
-# define FORCE_INLINE __attribute__((always_inline)) inline
+#ifdef _MSC_VER
+#define FORCE_INLINE __forceinline inline
+#else
+#define FORCE_INLINE __attribute__((always_inline)) inline
+#endif
 
 namespace hof {
     template<typename F, typename PA, typename A, typename DA, typename PB, typename B, typename DB>
