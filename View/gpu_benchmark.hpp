@@ -108,7 +108,7 @@ namespace gpu {
     template<typename T>
     auto naive(cl::sycl::queue& queue, std::vector<T> const& A, std::vector<T> const& B)
     {
-        auto n = (int)sqrt(A.size());
+        auto n = (int)std::sqrt(A.size());
         std::vector<T> C(n*n);
 
         double t;
@@ -183,7 +183,7 @@ namespace gpu {
     template<size_t ls, typename T>
     auto matmatmul_shared(cl::sycl::queue& queue, std::vector<T> const& A, std::vector<T> const& B)
     {
-        auto n = (size_t)sqrt(A.size());
+        auto n = (size_t)std::sqrt(A.size());
         std::vector<T> C(n*n);
 
         double t;
@@ -219,7 +219,7 @@ namespace gpu {
     template<size_t ls, size_t vs, typename T>
     auto matmatmul_vectorized(cl::sycl::queue& queue, std::vector<T> const& A, std::vector<T> const& B)
     {
-        auto n = (size_t)sqrt(A.size());
+        auto n = (size_t)std::sqrt(A.size());
         std::vector<T> C(n*n);
 
         using V = cl::sycl::vec<T, vs>;
