@@ -173,7 +173,7 @@ namespace gpu {
                     rnz(vC[iy][ix], tmp, add, mul, vA[iy], vB[ix]);
                 });
             });
-            queue.wait();
+            queue.wait_and_throw();
             t = ms(e0.get());
         }
 
@@ -210,6 +210,95 @@ namespace gpu {
                 });
             });
             queue.wait();
+            t = ms(e0.get());
+        }
+
+        return std::make_pair(C, t);
+    }
+
+    template<int n> struct FuncSharedKernel {};
+
+    template<size_t n, size_t ls, typename T>
+    auto func_shared(cl::sycl::queue& queue, std::vector<T> const& A, std::vector<T> const& B)
+    {
+        std::vector<T> C(n*n);
+
+        double t;
+        {
+            cl::sycl::range<2> r(n, n);
+            cl::sycl::buffer<T, 2> bA(A.data(), r);
+            cl::sycl::buffer<T, 2> bB(B.data(), r);
+            cl::sycl::buffer<T, 2> bC(C.data(), r);
+
+            cl::sycl::nd_range<2> r2({ n, n }, { ls, ls });
+
+            auto e0 = queue.submit([&](cl::sycl::handler& cgh)
+            {
+                auto a = bA.template get_access<cl::sycl::access::mode::read>(cgh);
+                auto b = bB.template get_access<cl::sycl::access::mode::read>(cgh);
+                auto c = bC.template get_access<cl::sycl::access::mode::write>(cgh);
+
+                cl::sycl::accessor<T, 2, cl::sycl::access::mode::read_write, cl::sycl::access::target::local> tA(cl::sycl::range<2>(ls, ls), cgh);
+                cl::sycl::accessor<T, 2, cl::sycl::access::mode::read_write, cl::sycl::access::target::local> tB(cl::sycl::range<2>(ls, ls), cgh);
+                cl::sycl::accessor<T, 2, cl::sycl::access::mode::read_write, cl::sycl::access::target::local> tC(cl::sycl::range<2>(ls, ls), cgh);
+
+                cgh.parallel_for<FuncSharedKernel<n>>(r2, [=](cl::sycl::nd_item<2> it)
+                {
+                    auto Adata = a.get_device_ptr();
+                    auto Bdata = b.get_device_ptr();
+                    auto Cdata = c.get_device_ptr();
+                    auto tAdata = tA.get_device_ptr();
+                    auto tBdata = tB.get_device_ptr();
+                    auto tCdata = tC.get_device_ptr();
+
+                    constexpr auto Bs = (int)n / ls;
+
+                    View<decltype(Adata), T, to_list_t<P<Bs, ls*n>, P<Bs, ls>, P<ls, n>, P<ls, 1>>> vA(Adata);
+                    View<decltype(Bdata), T, to_list_t<P<Bs, ls>, P<Bs, ls*n>, P<ls, 1>, P<ls, n>>> vB(Bdata);
+                    View<decltype(Cdata), T, to_list_t<P<Bs, ls*n>, P<Bs, ls>, P<ls, n>, P<ls, 1>>> vC(Cdata);
+                    View<decltype(tAdata), T, to_list_t<P<ls, ls>, P<ls, 1>>> vtA(tAdata);
+                    View<decltype(tBdata), T, to_list_t<P<ls, ls>, P<ls, 1>>> vtB(tBdata);
+                    View<decltype(tCdata), T, to_list_t<P<ls, ls>, P<ls, 1>>> vtC(tCdata);
+
+                    auto ix = it.get_global().get(0);
+                    auto iy = it.get_global().get(1);
+                    auto lx = it.get_local().get(0);
+                    auto ly = it.get_local().get(1);
+                    auto gx = it.get_group(0);
+                    auto gy = it.get_group(1);
+
+                    T sum = 0, tmp = 0;
+
+                    rnz(vC[gy][gx], vtC,
+                        [&](auto result, auto b1, auto b2) {
+                        result[ly][lx] = add(b1[ly][lx], b2[ly][lx]); },
+                        [&](auto result, auto bA, auto bB) {
+                            vtA[ly][lx] = bA[ly][lx];
+                            it.barrier(cl::sycl::access::fence_space::local_space);
+                            rnz(result[ly][lx], tmp, add, mul, bA[ly], bB[lx]);
+                            it.barrier(cl::sycl::access::fence_space::local_space); },
+                            vA[gy], vB[gx]);
+
+                    //for (int b = 0; b < Bs; ++b)
+                    //{
+                    //    auto off1 = b*ls + lx;
+                    //    auto off2 = b*ls + ly;
+                    //    tA[ly][lx] = A[iy][off1];
+                    //    tB[lx][ly] = B[off2][ix];
+                    //    id.barrier(cl::sycl::access::fence_space::local_space);
+
+                    //    for (int k = 0; k < ls; ++k)
+                    //    {
+                    //        sum += tA[ly][k] * tB[lx][k];
+                    //    }
+
+                    //    id.barrier(cl::sycl::access::fence_space::local_space);
+                    //}
+                    //C[iy][ix] = sum;
+
+                });
+            });
+            queue.wait_and_throw();
             t = ms(e0.get());
         }
 
@@ -274,25 +363,35 @@ namespace gpu {
             }
         }
 
-        auto ref = cpu::functional_view_blocked<n, 16>(A, B);// func_ref = functional_naive<n>(A, B);
-
-        auto summary = [&](std::string const& title, std::vector<R> const& v)
-        {
-            std::cout << title << ": ";
-            for (auto const& r : v) { std::cout << r.second << " ms " "(" << (is_same(r.first, ref.first) ? '+' : '-') << ") "; }
-            std::cout << "\n";
-        };
-
         try {
+            auto asyncHandler = [](cl::sycl::exception_list eL) {
+                for (auto& e : eL) {
+                    try {
+                        std::rethrow_exception(e);
+                    }
+                    catch (cl::sycl::exception& e) {
+                        std::cout << e.what() << std::endl;
+                    }
+                }
+            };
             property_list plist{ cl::sycl::property::queue::enable_profiling {} };
-            queue queue(default_selector(), plist);
+            queue queue(default_selector(), asyncHandler, plist);
             std::cout << "Running on " << queue.get_device().get_info<cl::sycl::info::device::name>() << "\n\n";
 
-            summary("CPU func blocked", { ref });
+            auto ref = matmatmul_vectorized<16, 2>(queue, A, B);
+
+            auto summary = [&](std::string const& title, std::vector<R> const& v)
+            {
+                std::cout << title << ": ";
+                for (auto const& r : v) { std::cout << r.second << " ms " "(" << (is_same(r.first, ref.first) ? '+' : '-') << ") "; }
+                std::cout << "\n";
+            };
+
             summary("GPU Naive", { naive(queue, A, B) });
             summary("GPU Func naive", { func_naive<n>(queue, A, B) });
             summary("GPU Shared", { matmatmul_shared<16>(queue, A, B) });
-            summary("GPU Vectorized", { matmatmul_vectorized<16, 2>(queue, A, B) });
+            summary("GPU Func shared", { func_shared<n,16>(queue, A, B) });
+            summary("GPU Vectorized", { ref });
         }
         catch (exception e) {
             std::cout << e.what();
@@ -304,7 +403,7 @@ namespace gpu {
         invoke<128>();
         invoke<256>();
         invoke<512>();
-        invoke<1024>();
+        //invoke<1024>();
     }
 
 }
