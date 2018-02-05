@@ -137,9 +137,9 @@ namespace gpu {
     }
 
     using namespace hof;
-
+    
     template<int n> struct FuncNaiveKernel {};
-
+    
     template<int n, typename T>
     auto func_naive(cl::sycl::queue& queue, std::vector<T> const& A, std::vector<T> const& B)
     {
@@ -217,7 +217,7 @@ namespace gpu {
     }
 
     template<int n> struct FuncSharedKernel {};
-
+    
     template<size_t n, size_t ls, typename T>
     auto func_shared(cl::sycl::queue& queue, std::vector<T> const& A, std::vector<T> const& B)
     {
@@ -267,35 +267,18 @@ namespace gpu {
                     auto gx = it.get_group(0);
                     auto gy = it.get_group(1);
 
-                    T sum = 0, tmp = 0;
+                    T tmp = 0;
 
                     rnz(vC[gy][gx], vtC,
                         [&](auto result, auto b1, auto b2) {
                         result[ly][lx] = add(b1[ly][lx], b2[ly][lx]); },
                         [&](auto result, auto bA, auto bB) {
                             vtA[ly][lx] = bA[ly][lx];
+                            vtB[lx][ly] = bB[lx][ly];
                             it.barrier(cl::sycl::access::fence_space::local_space);
                             rnz(result[ly][lx], tmp, add, mul, bA[ly], bB[lx]);
                             it.barrier(cl::sycl::access::fence_space::local_space); },
                             vA[gy], vB[gx]);
-
-                    //for (int b = 0; b < Bs; ++b)
-                    //{
-                    //    auto off1 = b*ls + lx;
-                    //    auto off2 = b*ls + ly;
-                    //    tA[ly][lx] = A[iy][off1];
-                    //    tB[lx][ly] = B[off2][ix];
-                    //    id.barrier(cl::sycl::access::fence_space::local_space);
-
-                    //    for (int k = 0; k < ls; ++k)
-                    //    {
-                    //        sum += tA[ly][k] * tB[lx][k];
-                    //    }
-
-                    //    id.barrier(cl::sycl::access::fence_space::local_space);
-                    //}
-                    //C[iy][ix] = sum;
-
                 });
             });
             queue.wait_and_throw();
@@ -403,7 +386,8 @@ namespace gpu {
         invoke<128>();
         invoke<256>();
         invoke<512>();
-        //invoke<1024>();
+        invoke<1024>();
+        invoke<2048>();
     }
 
 }
