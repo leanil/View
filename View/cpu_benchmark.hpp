@@ -135,6 +135,33 @@ namespace cpu {
         return std::make_pair(C, ms(t0, t1));;
     }
 
+    template<int n, typename T>
+    auto functional_naive_exchange(std::vector<T> const& A, std::vector<T> const& B)
+    {
+        std::vector<T> C(n*n);
+        auto Adata = A.data(), Bdata = B.data();
+        auto Cdata = C.data();
+        View<T const*, T, to_list_t<P<n, n>, P<n, 1>>> vA(Adata);
+        View<T const*, T, to_list_t<P<n, n>, P<n, 1>>> vB(Bdata);
+        View<T*, T, to_list_t<P<n, n>, P<n, 1>>> vC(Cdata);
+        std::vector<T> t(n);
+        View<T*, T, to_list_t<P<n, 1>>> tmp(t.data());
+        auto t0 = std::chrono::high_resolution_clock::now();
+        map(vC,
+            [&](auto result, auto r) {
+            rnz(result, tmp,
+                [&](auto result, auto v1, auto v2) {
+                zip(result, add, v1, v2); },
+                [&](auto result, auto q, auto r2) {
+                    map(result,
+                        [&](auto result, auto x) { result = mul(q, x); },
+                        r2); },
+                    r, vB); },
+            vA);
+        auto t1 = std::chrono::high_resolution_clock::now();
+        return std::make_pair(C, ms(t0, t1));;
+    }
+
     template<int n, int b, typename T>
     auto functional_view_blocked(std::vector<T> const& A, std::vector<T> const& B)
     {
@@ -201,7 +228,7 @@ namespace cpu {
 
         summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B), functional_view_blocked<n, 4>(A, B) });
         summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B), functional_view_blocked<n, 8>(A, B) });
-        summary("CPU Blocked 16", { ref, func_ref, blocked<16>(A, B), view_blocked<n, 16>(A, B), functional_view_blocked<n, 16>(A, B) });
+        summary("CPU Blocked 16", { ref, func_ref, functional_naive_exchange<n>(A,B), blocked<16>(A, B), view_blocked<n, 16>(A, B), functional_view_blocked<n, 16>(A, B) });
         summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 32>(A, B) });
     }
 
