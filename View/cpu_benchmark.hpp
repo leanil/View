@@ -3,6 +3,7 @@
 #include "View.h"
 #include "hof.h"
 #include "benchmark_util.h"
+#include "gen_test.hpp"
 #include <random>
 #include <algorithm>
 #include <iostream>
@@ -217,7 +218,7 @@ namespace cpu {
             }
         }
 
-        auto ref = naive(A, B), func_ref = functional_naive<n>(A, B);
+        auto ref = functional_view_blocked<n, 16>(A, B);
 
         auto summary = [&](std::string const& title, std::vector<R> const& v)
         {
@@ -226,14 +227,14 @@ namespace cpu {
             std::cout << "\n";
         };
 
-        summary("CPU Blocked 4", { ref, func_ref, blocked<4>(A, B), view_blocked<n, 4>(A, B), functional_view_blocked<n, 4>(A, B) });
-        summary("CPU Blocked 8", { ref, func_ref, blocked<8>(A, B), view_blocked<n, 8>(A, B), functional_view_blocked<n, 8>(A, B) });
-        summary("CPU Blocked 16", { ref, func_ref, functional_naive_exchange<n>(A,B), blocked<16>(A, B), view_blocked<n, 16>(A, B), functional_view_blocked<n, 16>(A, B) });
-        summary("CPU Blocked 32", { ref, func_ref, blocked<32>(A, B), view_blocked<n, 32>(A, B), functional_view_blocked<n, 32>(A, B) });
+        summary("CPU Blocked 4", { functional_view_blocked<n, 4>(A, B), t1::test<n>(A,B), t2::test<n,4>(A,B), t3::test<n,4>(A,B), t4::test<n,4>(A,B) });
+        summary("CPU Blocked 8", { functional_view_blocked<n, 8>(A, B), t1::test<n>(A,B), t2::test<n,8>(A,B), t3::test<n,8>(A,B), t4::test<n,8>(A,B) });
+        summary("CPU Blocked 16", { functional_view_blocked<n, 16>(A, B), t1::test<n>(A,B), t2::test<n,16>(A,B), t3::test<n,16>(A,B), t4::test<n,16>(A,B) });
+        summary("CPU Blocked 32", { functional_view_blocked<n, 32>(A, B), t1::test<n>(A,B), t2::test<n,32>(A,B), t3::test<n,32>(A,B), t4::test<n,32>(A,B) });
     }
 
     void benchmark() {
-        std::cout << "               naive       func naive   blocked   view blocked   func view blocked\n";
+        std::cout << "           func_view_blocked     t1          t2          t3              t4\n";
         invoke<64>();
         invoke<128>();
         invoke<256>();

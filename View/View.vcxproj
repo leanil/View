@@ -19,6 +19,7 @@
   <ItemGroup>
     <ClInclude Include="benchmark_util.h" />
     <ClInclude Include="cpu_benchmark.hpp" />
+    <ClInclude Include="gen_test.hpp" />
     <ClInclude Include="gpu_benchmark.hpp" />
     <ClInclude Include="hof.h" />
     <ClInclude Include="List.h" />

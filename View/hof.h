@@ -65,4 +65,6 @@ namespace hof {
 
     const auto add = [](auto a, auto b) {return a + b; };
     const auto mul = [](auto a, auto b) {return a * b; };
+
+    const auto add3 = [](auto res, auto a, auto b) { res = a + b; };
 }

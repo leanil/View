@@ -40,7 +40,7 @@ struct Flip<0, List<A, List<B, T>>> {
 };
 
 template<int D, typename S>
-using flip_t = Flip<D, S>::type;
+using flip_t = typename Flip<D, S>::type;
 
 template<typename Ptr, typename T, typename Ds> class View;
 
