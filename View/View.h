@@ -12,6 +12,36 @@ struct P {
     static constexpr size_t stride = S;
 };
 
+template<int D, size_t L, typename S> struct Subdiv;
+
+template<int D, size_t L, typename H, typename T>
+struct Subdiv<D, L, List<H, T>> {
+    using type = List<H, typename Subdiv<D - 1, L, T>::type>;
+};
+
+template<size_t L, size_t D, size_t S, typename T>
+struct Subdiv<0, L, List<P<D, S>, T>> {
+    using type = List<P<L, D / L*S>, List<P<D / L, S>, T>>;
+};
+
+template<int D, size_t L, typename S>
+using subdiv_t = typename Subdiv<D, L, S>::type;
+
+template<int D, typename S> struct Flip;
+
+template<int D, typename H, typename T>
+struct Flip<D, List<H, T>> {
+    using type = List<H, typename Flip<D - 1, T>::type>;
+};
+
+template<typename A, typename B, typename T>
+struct Flip<0, List<A, List<B, T>>> {
+    using type = List<B, List<A, T>>;
+};
+
+template<int D, typename S>
+using flip_t = Flip<D, S>::type;
+
 template<typename Ptr, typename T, typename Ds> class View;
 
 template<typename Ptr, typename T, typename D, typename Ds>
