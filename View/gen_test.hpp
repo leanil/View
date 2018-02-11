@@ -109,8 +109,10 @@ namespace t3 {
 namespace t4 {
     // Raising the upper rnz :
     template<typename T0, typename T1, typename T2, typename T3, typename T4>
-    void kernel(T0&& res, T1&& A3, T2&& B3, T3&& t00, T4&& t12)
+    void kernel(T0&& res, T1&& _A3, T2&& _B3, T3&& t00, T4&& t12)
     {
+        auto A3 = flip(0, subdiv(1, b, _A3));
+        auto B3 = flip(0, subdiv(1, b, _B3));
         rnz(res, t12, lift(lift(add)), [&](auto res, auto A2, auto B2)
         {
             map(res, [&](auto res, auto A1)
@@ -127,8 +129,8 @@ namespace t4 {
     auto test(std::vector<T> const& A, std::vector<T> const& B)
     {
         std::vector<T> C(n*n), tmp(n*n);
-        View<T const*, T, flip_t<0, subdiv_t<1, b, to_list_t<P<n, n>, P<n, 1>>>>> vA(A.data());
-        View<T const*, T, flip_t<0, subdiv_t<1, b, to_list_t<P<n, 1>, P<n, n>>>>> vB(B.data());
+        View<T const*, T, to_list_t<P<n, n>, P<n, 1>>> vA(A.data());
+        View<T const*, T, to_list_t<P<n, 1>, P<n, n>>> vB(B.data());
         View<T*, T, to_list_t<P<n, n>, P<n, 1>>> vC(C.data());
         View<T*, T, EmptyList> tmp1(new T);
         View<T*, T, to_list_t<P<n, n>, P<n, 1>>> tmp2(tmp.data());
