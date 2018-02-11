@@ -1,3 +1,4 @@
+#include "benchmark_util.h"
 #include "hof.h"
 #include "View.h"
 #include <chrono>
@@ -108,11 +109,11 @@ namespace t3 {
 
 namespace t4 {
     // Raising the upper rnz :
-    template<typename T0, typename T1, typename T2, typename T3, typename T4>
+    template<int b, typename T0, typename T1, typename T2, typename T3, typename T4>
     void kernel(T0&& res, T1&& _A3, T2&& _B3, T3&& t00, T4&& t12)
     {
-        auto A3 = flip(0, subdiv(1, b, _A3));
-        auto B3 = flip(0, subdiv(1, b, _B3));
+        auto A3 = flip<0>(subdiv<1, b>(_A3));
+        auto B3 = flip<0>(subdiv<1, b>(_B3));
         rnz(res, t12, lift(lift(add)), [&](auto res, auto A2, auto B2)
         {
             map(res, [&](auto res, auto A1)
@@ -135,7 +136,7 @@ namespace t4 {
         View<T*, T, EmptyList> tmp1(new T);
         View<T*, T, to_list_t<P<n, n>, P<n, 1>>> tmp2(tmp.data());
         auto t0 = std::chrono::high_resolution_clock::now();
-        kernel(vC, vA, vB, tmp1, tmp2);
+        kernel<b>(vC, vA, vB, tmp1, tmp2);
         auto t1 = std::chrono::high_resolution_clock::now();
         return std::make_pair(C, ms(t0, t1));;
     }

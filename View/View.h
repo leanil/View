@@ -44,14 +44,14 @@ using flip_t = typename Flip<D, S>::type;
 
 template<typename Ptr, typename T, typename Ds> class View;
 
-template<typename Ptr, typename T, typename Ds>
-auto flip(int d, View<Ptr,T,Ds> v) {
-    return View<Ptr, T, flip_t<d, Ds>> v2(v.ptr);
+template<int d, typename Ptr, typename T, typename Ds>
+auto flip(View<Ptr, T, Ds> v) {
+    return View<Ptr, T, flip_t<d, Ds>>(v.data);
 }
 
-template<typename Ptr, typename T, typename Ds>
-auto subdiv(int d, size_t l, View<Ptr, T, Ds> v) {
-    return View<Ptr, T, subdiv_t<d, l, Ds>> v2(v.ptr);
+template<int d, size_t l, typename Ptr, typename T, typename Ds>
+auto subdiv(View<Ptr, T, Ds> v) {
+    return View<Ptr, T, subdiv_t<d, l, Ds>>(v.data);
 }
 
 template<typename Ptr, typename T, typename D, typename Ds>

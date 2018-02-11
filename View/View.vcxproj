@@ -11,19 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <SYCLCpp Include="main.cpp">
-      <DeviceAdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">c:\program files (x86)\Microsoft Visual Studio 12.0\VC\include;c:\program files (x86)\Microsoft Visual Studio 12.0\atlmfc\include;$(COMPUTECPP_ROOT_DIR)\include;$(COMPUTECPP_ROOT_DIR)\include\image_library;$(ProjectDir)</DeviceAdditionalIncludeDirectories>
-      <DeviceAdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">c:\program files (x86)\Microsoft Visual Studio 12.0\VC\include;c:\program files (x86)\Microsoft Visual Studio 12.0\atlmfc\include;$(COMPUTECPP_ROOT_DIR)\include;$(COMPUTECPP_ROOT_DIR)\include\image_library;$(ProjectDir)</DeviceAdditionalIncludeDirectories>
-    </SYCLCpp>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="benchmark_util.h" />
-    <ClInclude Include="cpu_benchmark.hpp" />
-    <ClInclude Include="gen_test.hpp" />
-    <ClInclude Include="gpu_benchmark.hpp" />
     <ClInclude Include="hof.h" />
     <ClInclude Include="List.h" />
     <ClInclude Include="View.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="gpu_benchmark.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{42863f18-379a-4d44-a1ab-0a7aaa3f8e3e}</ProjectGuid>
